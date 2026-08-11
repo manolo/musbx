@@ -1,0 +1,34 @@
+name: macOS trial
+
+on:
+  push:
+    branches: [fix/macos/runtime-permissions]
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-flutter
+        with:
+          keys_file: ${{ secrets.KEYS_FILE }}
+
+      - name: Build
+        run: flutter build macos --release
+
+      - name: Show effective entitlements
+        run: |
+          codesign -d --entitlements - --xml \
+            build/macos/Build/Products/Release/musbx.app | plutil -p -
+
+      - name: Package
+        run: |
+          ditto -c -k --keepParent \
+            build/macos/Build/Products/Release/musbx.app musbx-macos-trial.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: musbx-macos
+          path: musbx-macos-trial.zip
